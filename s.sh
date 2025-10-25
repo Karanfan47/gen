@@ -1,5 +1,5 @@
 #!/bin/bash
-# Color setup AAAAAAAAA
+# Color setup
 if [ -t 1 ] && [ -n "$(tput colors)" ] && [ "$(tput colors)" -ge 8 ]; then
     BOLD=$(tput bold)
     RED=$(tput setaf 1)
@@ -283,6 +283,7 @@ install_python_packages() {
     pip freeze | grep -E '^(transformers|trl)==' >> "$LOG_FILE"
 }
 # Check Gensyn Node Status
+# Check Gensyn Node Status
 check_gensyn_node_status() {
     log "INFO" "🔍 Checking Gensyn node status..."
     echo -e "${CYAN}${BOLD}🔍 Gensyn Node Status${NC}"
@@ -317,13 +318,15 @@ check_gensyn_node_status() {
     for error in "${error_indicators[@]}"; do
         if echo "$TMUX_OUTPUT" | grep -q "$error"; then
             error_message=$(echo "$TMUX_OUTPUT" | grep -A 5 "$error" | head -n 1)
-            # Look for file and line number in the stack trace
             local error_location=$(echo "$TMUX_OUTPUT" | grep -B 1 "$error" | grep -o "File \"[^\"]*\", line [0-9]*" | tail -n 1)
 
-            # Check if the error is ignorable
             if [[ "$error_message" == *"$ignorable_error"* ]]; then
                 log "WARN" "⚠️ Ignored non-critical error: $error_message"
                 echo -e "${YELLOW}⚠️ Ignored non-critical error: $error_message${NC}"
+            elif echo "$error_message" | grep -q "ConnectionRefusedError"; then
+                log "WARN" "⚠️ ConnectionRefusedError detected: $error_message (Location: $error_location) - Node will continue running"
+                echo -e "${YELLOW}⚠️ ConnectionRefusedError detected: $error_message${NC}"
+                echo -e "${YELLOW}   Location: $error_location - Node will continue running${NC}"
             else
                 error_detected=true
                 if [ -n "$error_location" ]; then
@@ -365,6 +368,10 @@ check_gensyn_node_status() {
                 if [[ "$error_message" == *"$ignorable_error"* ]]; then
                     log "WARN" "⚠️ Ignored non-critical error: $error_message"
                     echo -e "${YELLOW}⚠️ Ignored non-critical error: $error_message${NC}"
+                elif echo "$error_message" | grep -q "ConnectionRefusedError"; then
+                    log "WARN" "⚠️ ConnectionRefusedError detected: $error_message (Location: $error_location) - Node will continue running"
+                    echo -e "${YELLOW}⚠️ ConnectionRefusedError detected: $error_message${NC}"
+                    echo -e "${YELLOW}   Location: $error_location - Node will continue running${NC}"
                 else
                     error_detected=true
                     if [ -n "$error_location" ]; then
@@ -394,6 +401,7 @@ check_gensyn_node_status() {
     echo -e "${RED}❌ Node Status: OFFLINE (No status indicators found)${NC}"
     return 1
 }
+
 # Monitor system resources
 monitor_resources() {
     while true; do
