@@ -93,29 +93,42 @@ unzip_files() {
         log "WARN" "⚠️ No ZIP file found in $HOME, proceeding without unzipping"
     fi
 }
-# Dependencies
 install_deps() {
     log "INFO" "🔄 Updating package list..."
     sudo apt update -y
     sudo apt install -y python3 python3-venv python3-pip curl wget screen git lsof ufw jq perl gnupg tmux
-    log "INFO" "🟢 Installing Node.js 20..."
-    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-    sudo apt install -y nodejs
+
+    log "INFO" "🟢 Installing NVM and Node.js 20.19.0..."
+    # Install NVM silently
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/master/install.sh | bash -s -- --yes
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+    [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+    
+    # Install and set Node 20.19.0 as default
+    nvm install 20.19.0
+    nvm alias default 20.19.0
+    nvm use default
+
     log "INFO" "🧵 Installing Yarn..."
-    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/yarn.gpg
-    echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+    curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/yarn.gpg >/dev/null
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list >/dev/null
     sudo apt update -y
     sudo apt install -y yarn
+
     log "INFO" "🛡️ Setting up firewall..."
-    sudo ufw allow 22
+    sudo ufw allow 22/tcp
     sudo ufw allow 3000/tcp
-    sudo ufw enable
+    yes | sudo ufw enable
+
     log "INFO" "🌩️ Installing Cloudflared..."
-    wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-    sudo dpkg -i cloudflared-linux-amd64.deb || sudo apt install -f
+    wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+    sudo dpkg -i cloudflared-linux-amd64.deb || sudo apt install -y -f
     rm -f cloudflared-linux-amd64.deb
+
     log "INFO" "✅ All dependencies installed successfully!"
 }
+
 
 reduce_sample() {
     sed -i -E 's/(num_train_samples:\s*)2/\1 1/' $SWARM_DIR/rgym_exp/config/rg-swarm.yaml && bash run_rl_swarm.sh
