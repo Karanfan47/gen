@@ -185,18 +185,23 @@ modify_run_script() {
         NR==1 && $0 ~ /^#!\/bin\/bash/ { print; next }
         $0 !~ /^\s*: "\$\{KEEP_TEMP_DATA:=.*\}"/ { print }
         ' "$run_script" > "$run_script.tmp" && mv "$run_script.tmp" "$run_script"
+
         sed -i '1a : "${KEEP_TEMP_DATA:='"$KEEP_TEMP_DATA"'}"' "$run_script"
-        if grep -q 'rm -r \$ROOT_DIR/modal-login/temp-data/\*\.json' "$run_script" && \
+
+        if grep -q 'rm -r \$ROOT_DIR/modal-login/temp-data/.*\.json' "$run_script" && \
            ! grep -q 'if \[ "\$KEEP_TEMP_DATA" != "true" \]; then' "$run_script"; then
+
             perl -i -pe '
-                s#rm -r \$ROOT_DIR/modal-login/temp-data/\*\.json 2> /dev/null \|\| true#
+                s#rm -r \$ROOT_DIR/modal-login/temp-data/.*\.json.*#
 if [ "\$KEEP_TEMP_DATA" != "true" ]; then
     rm -r \$ROOT_DIR/modal-login/temp-data/*.json 2> /dev/null || true
 fi#' "$run_script"
         fi
+
         log "INFO" "✅ Modified run_rl_swarm.sh to respect KEEP_TEMP_DATA"
     fi
 }
+
 # Fix kill command in run script
 fix_kill_command() {
     local run_script="$SWARM_DIR/run_rl_swarm.sh"
