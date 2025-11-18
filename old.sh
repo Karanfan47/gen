@@ -264,7 +264,7 @@ install_node() {
     }
 
     # Step 1: Install dependencies, clone repo, modify scripts
-    ( install_deps ) & spinner $! "📦 Installing dependencies"
+    install_deps
     ( clone_repo ) & spinner $! "📥 Cloning repo"
     ( modify_run_script ) & spinner $! "🧠 Modifying run script"
     sudo mkdir -p "$TEMP_DATA_DIR"
